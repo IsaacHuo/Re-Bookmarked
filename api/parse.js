@@ -38,7 +38,7 @@ function parseNode(node, depth, stats) {
     if (!element) continue
     
     if (element.tagName === 'H3') {
-      const folder = parseFolder(child, depth + 1, stats)
+      const folder = parseFolder(child, depth, stats)
       if (folder) {
         bookmarks.push(folder)
         stats.folders++
@@ -60,12 +60,22 @@ function parseFolder(dt, depth, stats) {
   if (!h3) return null
   
   const title = h3.textContent.trim()
-  const next = dt.nextElementSibling
   let children = []
   
-  if (next?.tagName === 'DD') {
-    const dl = next.querySelector('DL')
-    if (dl) children = parseNode(dl, depth, stats)
+  const childDL = dt.querySelector('DL')
+  if (childDL) {
+    children = parseNode(childDL, depth + 1, stats)
+  } else {
+    let nextSibling = dt.nextElementSibling
+    while (nextSibling) {
+      if (nextSibling.tagName === 'DL') {
+        children = parseNode(nextSibling, depth + 1, stats)
+        break
+      } else if (nextSibling.tagName === 'DT') {
+        break
+      }
+      nextSibling = nextSibling.nextElementSibling
+    }
   }
   
   return {

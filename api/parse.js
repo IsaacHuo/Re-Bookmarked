@@ -24,7 +24,10 @@ function parseHTML(html) {
   if (!root) throw new Error('Invalid bookmark file')
 
   const stats = { total: 0, folders: 0, depth: 0 }
-  return { bookmarks: parseNode(root, 0, stats), ...stats }
+  console.log('Starting HTML parsing...')
+  const result = { bookmarks: parseNode(root, 0, stats), ...stats }
+  console.log(`Parse complete: ${stats.total} bookmarks, ${stats.folders} folders`)
+  return result
 }
 
 function parseNode(node, depth, stats) {
@@ -88,6 +91,11 @@ function parseFolder(dt, depth, stats) {
 }
 
 function parseLink(a) {
+  if (!a.href || !a.textContent.trim()) {
+    console.log('Skipping invalid link:', { href: a.href, text: a.textContent })
+    return null
+  }
+  
   return {
     id: `link-${a.href}-${Date.now()}`,
     type: 'link',

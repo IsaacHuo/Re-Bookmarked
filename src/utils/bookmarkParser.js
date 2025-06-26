@@ -154,3 +154,80 @@ function download(blob, filename) {
   document.body.removeChild(a)
   URL.revokeObjectURL(url)
 }
+
+export async function organizeBookmarks(bookmarks, strategy = 'category') {
+  try {
+    const response = await fetch('/api/organize', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ bookmarks, organizeStrategy: strategy })
+    })
+    
+    if (!response.ok) throw new Error('整理失败')
+    return await response.json()
+  } catch (error) {
+    throw new Error('AI整理失败: ' + error.message)
+  }
+}
+
+export function downloadOrganizedHTML(htmlContent, filename = `bookmarks-organized-${Date.now()}.html`) {
+  const blob = new Blob([htmlContent], { type: 'text/html;charset=utf-8' })
+  download(blob, filename)
+}
+
+// 下载HTML书签文件（使用API生成）
+export async function downloadBookmarkHTML(bookmarks, filename = `bookmarks-organized-${Date.now()}.html`) {
+  try {
+    const response = await fetch('/api/generate-html', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ 
+        bookmarks,
+        title: 'Re-Bookmarked 整理结果'
+      })
+    })
+    
+    if (!response.ok) {
+      const error = await response.json()
+      throw new Error(error.error || '生成HTML失败')
+    }
+    
+    // 直接下载响应内容
+    const blob = await response.blob()
+    download(blob, filename)
+  } catch (error) {
+    console.error('HTML导出失败:', error)
+    throw new Error('HTML导出失败: ' + error.message)
+  }
+}
+
+// 获取书签统计信息
+export function getBookmarkStats(bookmarks) {
+  let totalLinks = 0
+  let totalFolders = 0
+  let maxDepth = 0
+  
+  function traverse(items, depth = 0) {
+    maxDepth = Math.max(maxDepth, depth)
+    
+    for (const item of items) {
+      if (item.type === 'folder') {
+        totalFolders++
+        if (item.children) {
+          traverse(item.children, depth + 1)
+        }
+      } else if (item.type === 'link') {
+        totalLinks++
+      }
+    }
+  }
+  
+  traverse(bookmarks)
+  
+  return {
+    totalLinks,
+    totalFolders,
+    maxDepth,
+    totalItems: totalLinks + totalFolders
+  }
+}
